@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 我的記帳本</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --primary-dark: #1557b0;
+            --success: #34a853;
+            --warning: #fbbc04;
+            --danger: #ea4335;
+            --purple: #9334e6;
+            --bg-main: #f8f9fa;
+            --bg-card: #ffffff;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --border: #dadce0;
+            --shadow-sm: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+            --shadow-md: 0 1px 3px 0 rgba(60,64,67,.3), 0 4px 8px 3px rgba(60,64,67,.15);
+            --shadow-lg: 0 8px 16px 0 rgba(60,64,67,.3), 0 4px 16px 6px rgba(60,64,67,.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+
+        .app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: var(--bg-main);
+            position: relative;
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* === 頂部導航欄 === */
+        .app-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-md);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .app-title {
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+
+        .settings-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .settings-btn:active {
+            transform: scale(0.95);
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* === 統計卡片 === */
+        .stats-card {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .month-selector {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .month-selector button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 1.2em;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .month-selector button:active {
+            transform: scale(0.9);
+        }
+
+        .current-month {
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        .total-amount {
+            font-size: 2.5em;
+            font-weight: 900;
+            font-family: 'JetBrains Mono', monospace;
+            text-align: center;
+            margin: 15px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 12px;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.1em;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* === 主要內容區 === */
+        .app-content {
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        /* === 搜尋和篩選 === */
+        .search-section {
+            margin-bottom: 20px;
+        }
+
+        .search-bar {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 45px 12px 45px;
+            border: 2px solid var(--border);
+            border-radius: 24px;
+            font-size: 1em;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(26,115,232,0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 1.2em;
+        }
+
+        .clear-search {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2em;
+            cursor: pointer;
+            display: none;
+        }
+
+        .clear-search.visible {
+            display: block;
+        }
+
+        /* === 分類篩選器 === */
+        .category-filters {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 5px 0;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .category-filters::-webkit-scrollbar {
+            display: none;
+        }
+
+        .category-chip {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 2px solid var(--border);
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .category-chip:active {
+            transform: scale(0.95);
+        }
+
+        .category-chip.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* === 記錄列表 === */
+        .records-section {
+            margin-top: 20px;
+        }
+
+        .date-group {
+            margin-bottom: 25px;
+        }
+
+        .date-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .date-label {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .date-total {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .record-item {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 8px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .record-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--primary);
+            transition: width 0.3s;
+        }
+
+        .record-item:active::before {
+            width: 100%;
+            opacity: 0.05;
+        }
+
+        .record-item.food::before { background: #4CAF50; }
+        .record-item.transport::before { background: #2196F3; }
+        .record-item.home::before { background: #FF9800; }
+        .record-item.education::before { background: #9C27B0; }
+        .record-item.medical::before { background: #F44336; }
+        .record-item.misc::before { background: #607D8B; }
+
+        .record-left {
+            flex: 1;
+            padding-left: 10px;
+        }
+
+        .record-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            background: var(--bg-main);
+            color: var(--text-secondary);
+        }
+
+        .record-item.food .category-badge { background: #e8f5e9; color: #2e7d32; }
+        .record-item.transport .category-badge { background: #e3f2fd; color: #1565c0; }
+        .record-item.home .category-badge { background: #fff3e0; color: #e65100; }
+        .record-item.education .category-badge { background: #f3e5f5; color: #6a1b9a; }
+        .record-item.medical .category-badge { background: #ffebee; color: #c62828; }
+        .record-item.misc .category-badge { background: #eceff1; color: #455a64; }
+
+        .record-item-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1.05em;
+        }
+
+        .record-time {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .record-amount {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3em;
+            font-weight: 700;
+            color: var(--text-primary);
+            padding-right: 5px;
+        }
+
+        /* === 底部快速操作欄 === */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 480px;
+            width: 100%;
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+            z-index: 99;
+        }
+
+        .quick-add-btn {
+            flex: 1;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.05em;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s;
+        }
+
+        .quick-add-btn:active {
+            transform: translateY(2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .export-btn {
+            padding: 15px 20px;
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .export-btn:active {
+            transform: scale(0.95);
+            background: var(--bg-main);
+        }
+
+        /* === 空狀態 === */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
+
+        .empty-text {
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        /* === 載入動畫 === */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 15px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* === 模態視窗 === */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: var(--text-secondary);
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        /* === 響應式 === */
+        @media (min-width: 481px) {
+            .app-container {
+                margin-top: 20px;
+                margin-bottom: 20px;
+                min-height: calc(100vh - 40px);
+                border-radius: 20px;
+                overflow: hidden;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 頂部導航欄 -->
+        <header class="app-header">
+            <div class="header-top">
+                <div class="app-title">💰 我的記帳本</div>
+                <button class="settings-btn" onclick="openSettings()">⚙️</button>
+            </div>
+            
+            <!-- 統計卡片 -->
+            <div class="stats-card">
+                <div class="month-selector">
+                    <button onclick="changeMonth(-1)">←</button>
+                    <div class="current-month" id="currentMonth">載入中...</div>
+                    <button onclick="changeMonth(1)">→</button>
+                </div>
+                
+                <div class="total-amount" id="monthTotal">NT$0</div>
+                
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">伙食</div>
+                        <div class="stat-value" id="foodStat">$0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">行車</div>
+                        <div class="stat-value" id="transportStat">$0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">家用</div>
+                        <div class="stat-value" id="homeStat">$0</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主要內容區 -->
+        <main class="app-content">
+            <!-- 搜尋和篩選 -->
+            <div class="search-section">
+                <div class="search-bar">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" 
+                           class="search-input" 
+                           id="searchInput" 
+                           placeholder="搜尋項目名稱..."
+                           oninput="handleSearch()">
+                    <button class="clear-search" id="clearSearch" onclick="clearSearch()">✕</button>
+                </div>
+                
+                <div class="category-filters" id="categoryFilters">
+                    <div class="category-chip active" data-category="all" onclick="filterCategory('all')">全部</div>
+                    <div class="category-chip" data-category="伙食" onclick="filterCategory('伙食')">🍽️ 伙食</div>
+                    <div class="category-chip" data-category="行車" onclick="filterCategory('行車')">🚗 行車</div>
+                    <div class="category-chip" data-category="家用" onclick="filterCategory('家用')">🏠 家用</div>
+                    <div class="category-chip" data-category="教育" onclick="filterCategory('教育')">📚 教育</div>
+                    <div class="category-chip" data-category="醫療" onclick="filterCategory('醫療')">🏥 醫療</div>
+                    <div class="category-chip" data-category="雜支" onclick="filterCategory('雜支')">📌 雜支</div>
+                </div>
+            </div>
+
+            <!-- 記錄列表 -->
+            <div class="records-section" id="recordsList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>載入中...</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 底部快速操作欄 -->
+        <div class="bottom-bar">
+            <button class="quick-add-btn" onclick="quickAdd()">
+                ➕ 快速記帳
+            </button>
+            <button class="export-btn" onclick="exportData()">
+                📊
+            </button>
+        </div>
+
+        <!-- 設定模態視窗 -->
+        <div class="modal" id="settingsModal">
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeSettings()">✕</button>
+                <div class="modal-header">⚙️ 設定</div>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="margin-bottom: 10px;">Google Apps Script 網址</h3>
+                    <input type="text" 
+                           id="apiUrlInput" 
+                           placeholder="貼上你的 Apps Script 網址"
+                           style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 8px; margin-bottom: 15px;">
+                    <button onclick="saveApiUrl()" 
+                            style="width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        儲存設定
+                    </button>
+                    <p style="margin-top: 10px; font-size: 0.85em; color: var(--text-secondary);">
+                        ℹ️ 網址格式: https://script.google.com/macros/s/xxxxx/exec
+                    </p>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                    <h3 style="margin-bottom: 10px;">關於</h3>
+                    <p style="color: var(--text-secondary); line-height: 1.6;">
+                        記帳 App v3.0<br>
+                        資料來源: Google Sheets<br>
+                        © 2026 Made with ❤️
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === 全域變數 ===
+        let allRecords = [];
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth() + 1;
+        let currentFilter = 'all';
+        let searchQuery = '';
+        
+        // Google Apps Script 網址
+        let API_URL = localStorage.getItem('apiUrl') || '';
+
+        // === 初始化 ===
+        window.onload = function() {
+            // 檢查是否已設定 API URL
+            if (!API_URL || API_URL === '') {
+                setTimeout(() => {
+                    alert('請先在設定中填入你的 Google Apps Script 網址');
+                    openSettings();
+                }, 500);
+                return;
+            }
+            
+            updateMonthDisplay();
+            loadRecords();
+        };
+
+        // === 載入記錄 (從 Google Sheets) ===
+        async function loadRecords() {
+            const container = document.getElementById('recordsList');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><div>載入中...</div></div>';
+            
+            try {
+                // 呼叫 Apps Script API
+                const url = `${API_URL}?action=getAllRecords&year=${currentYear}&month=${currentMonth}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    allRecords = data.records || [];
+                    renderRecords();
+                    updateStats();
+                } else {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">⚠️</div>
+                            <div class="empty-text">載入失敗: ${data.msg || '未知錯誤'}</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('載入錯誤:', error);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⚠️</div>
+                        <div class="empty-text">無法連接到伺服器<br><small>${error.message}</small></div>
+                        <button onclick="openSettings()" style="margin-top: 15px; padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            檢查設定
+                        </button>
+                    </div>
+                `;
+            }
+        };
+
+        // === 渲染記錄列表 ===
+        function renderRecords() {
+            const container = document.getElementById('recordsList');
+            
+            // 篩選記錄
+            let filtered = allRecords.filter(record => {
+                const matchCategory = currentFilter === 'all' || record.category === currentFilter;
+                const matchSearch = searchQuery === '' || 
+                                  record.item.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchCategory && matchSearch;
+            });
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <div class="empty-text">沒有找到記錄</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 按日期分組
+            const grouped = {};
+            filtered.forEach(record => {
+                if (!grouped[record.date]) {
+                    grouped[record.date] = [];
+                }
+                grouped[record.date].push(record);
+            });
+            
+            // 渲染
+            let html = '';
+            Object.keys(grouped).sort().reverse().forEach(date => {
+                const records = grouped[date];
+                const dateTotal = records.reduce((sum, r) => sum + r.amount, 0);
+                const dateLabel = formatDate(date);
+                
+                html += `
+                    <div class="date-group">
+                        <div class="date-header">
+                            <div class="date-label">${dateLabel}</div>
+                            <div class="date-total">NT$${dateTotal.toLocaleString()}</div>
+                        </div>
+                `;
+                
+                records.forEach(record => {
+                    const categoryClass = getCategoryClass(record.category);
+                    
+                    html += `
+                        <div class="record-item ${categoryClass}">
+                            <div class="record-left">
+                                <div class="record-header">
+                                    <span class="category-badge">${record.category}</span>
+                                    <span class="record-item-name">${record.item}</span>
+                                </div>
+                                <div class="record-time">${record.time}</div>
+                            </div>
+                            <div class="record-amount">$${record.amount}</div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // === 更新統計 ===
+        function updateStats() {
+            const categoryStats = {};
+            let monthTotal = 0;
+            
+            allRecords.forEach(r => {
+                monthTotal += r.amount;
+                if (!categoryStats[r.category]) {
+                    categoryStats[r.category] = 0;
+                }
+                categoryStats[r.category] += r.amount;
+            });
+            
+            document.getElementById('foodStat').textContent = `$${(categoryStats['伙食'] || 0).toLocaleString()}`;
+            document.getElementById('transportStat').textContent = `$${(categoryStats['行車'] || 0).toLocaleString()}`;
+            document.getElementById('homeStat').textContent = `$${(categoryStats['家用'] || 0).toLocaleString()}`;
+            document.getElementById('monthTotal').textContent = `NT$${monthTotal.toLocaleString()}`;
+        }
+
+        // === 搜尋功能 ===
+        function handleSearch() {
+            const input = document.getElementById('searchInput');
+            searchQuery = input.value;
+            
+            const clearBtn = document.getElementById('clearSearch');
+            if (searchQuery) {
+                clearBtn.classList.add('visible');
+            } else {
+                clearBtn.classList.remove('visible');
+            }
+            
+            renderRecords();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            searchQuery = '';
+            document.getElementById('clearSearch').classList.remove('visible');
+            renderRecords();
+        }
+
+        // === 分類篩選 ===
+        function filterCategory(category) {
+            currentFilter = category;
+            
+            // 更新按鈕狀態
+            document.querySelectorAll('.category-chip').forEach(chip => {
+                chip.classList.remove('active');
+            });
+            document.querySelector(`[data-category="${category}"]`).classList.add('active');
+            
+            renderRecords();
+        }
+
+        // === 月份切換 ===
+        function changeMonth(delta) {
+            currentMonth += delta;
+            
+            // 處理月份跨年
+            if (currentMonth > 12) {
+                currentMonth = 1;
+                currentYear++;
+            } else if (currentMonth < 1) {
+                currentMonth = 12;
+                currentYear--;
+            }
+            
+            updateMonthDisplay();
+            loadRecords(); // 🔥 關鍵修正: 重新載入該月份的資料
+        }
+
+        function updateMonthDisplay() {
+            document.getElementById('currentMonth').textContent = `${currentYear}年${currentMonth}月`;
+        }
+
+        // === 快速記帳 ===
+        function quickAdd() {
+            alert('請使用 iPhone 捷徑進行語音記帳\n\n或者在 Google Sheets 手動新增記錄後,重新整理此頁面即可看到更新');
+        }
+
+        // === 匯出資料 ===
+        function exportData() {
+            const sheetUrl = prompt('請輸入你的 Google Sheets 網址\n(格式: https://docs.google.com/spreadsheets/d/xxxxx/edit)');
+            if (sheetUrl) {
+                window.open(sheetUrl, '_blank');
+            }
+        }
+
+        // === 設定 ===
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+            document.getElementById('apiUrlInput').value = API_URL;
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function saveApiUrl() {
+            const url = document.getElementById('apiUrlInput').value.trim();
+            
+            if (!url) {
+                alert('請輸入 Apps Script 網址');
+                return;
+            }
+            
+            if (!url.includes('script.google.com')) {
+                alert('網址格式不正確!\n\n正確格式應該是:\nhttps://script.google.com/macros/s/xxxxx/exec');
+                return;
+            }
+            
+            localStorage.setItem('apiUrl', url);
+            API_URL = url;
+            alert('設定已儲存!');
+            closeSettings();
+            location.reload();
+        }
+
+        // === 輔助函數 ===
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            const dateOnly = dateStr.split(' ')[0]; // 只取日期部分
+            const todayStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+            const yesterdayStr = `${yesterday.getFullYear()}/${String(yesterday.getMonth()+1).padStart(2,'0')}/${String(yesterday.getDate()).padStart(2,'0')}`;
+            
+            if (dateOnly === todayStr) {
+                return '今天';
+            } else if (dateOnly === yesterdayStr) {
+                return '昨天';
+            } else {
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+                const weekday = weekdays[date.getDay()];
+                return `${month}/${day} (${weekday})`;
+            }
+        }
+
+        function getCategoryClass(category) {
+            const map = {
+                '伙食': 'food',
+                '行車': 'transport',
+                '家用': 'home',
+                '教育': 'education',
+                '醫療': 'medical',
+                '雜支': 'misc'
+            };
+            return map[category] || 'misc';
+        }
+    </script>
+</body>
+</html>
