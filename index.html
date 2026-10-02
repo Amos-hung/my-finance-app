@@ -2,9 +2,24 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>💰 我的記帳本</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- 讓「加入主畫面」後變成全螢幕 APP -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="記帳本">
+    <meta name="theme-color" content="#667eea">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+    <!-- 字型改成不擋畫面：先用系統字顯示，字型下載完再換上 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap"
+          rel="stylesheet" media="print" onload="this.media='all'">
+
     <style>
         :root {
             --primary: #1a73e8;
@@ -18,6 +33,7 @@
             --text-primary: #202124;
             --text-secondary: #5f6368;
             --border: #dadce0;
+            --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
             --shadow-sm: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
             --shadow-md: 0 1px 3px 0 rgba(60,64,67,.3), 0 4px 8px 3px rgba(60,64,67,.15);
             --shadow-lg: 0 8px 16px 0 rgba(60,64,67,.3), 0 4px 16px 6px rgba(60,64,67,.15);
@@ -25,11 +41,13 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        html { -webkit-tap-highlight-color: transparent; }
+
         body {
-            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'PingFang TC', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
 
         .app-container {
@@ -41,10 +59,10 @@
             box-shadow: var(--shadow-lg);
         }
 
-        /* === 頂部導航欄 === */
+        /* === 頂部導航欄（頂端留出瀏海/狀態列空間） === */
         .app-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
+            padding: calc(16px + env(safe-area-inset-top)) 20px 20px;
             color: white;
             position: sticky;
             top: 0;
@@ -56,12 +74,14 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .app-title { font-size: 1.5em; font-weight: 700; }
 
-        .settings-btn {
+        .header-actions { display: flex; gap: 8px; }
+
+        .icon-btn {
             background: rgba(255,255,255,0.2);
             border: none;
             width: 40px;
@@ -70,17 +90,20 @@
             color: white;
             font-size: 1.2em;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: transform 0.2s, background 0.2s;
         }
 
-        .settings-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.3); }
+        .icon-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.3); }
+
+        .icon-btn.spinning span { display: inline-block; animation: spin 1s linear infinite; }
 
         /* === 統計卡片 === */
         .stats-card {
             background: rgba(255,255,255,0.15);
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border-radius: 16px;
-            padding: 20px;
+            padding: 16px 20px;
             border: 1px solid rgba(255,255,255,0.2);
         }
 
@@ -88,7 +111,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
         .month-selector button {
@@ -100,7 +123,7 @@
             height: 35px;
             border-radius: 50%;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: transform 0.2s;
         }
 
         .month-selector button:active { transform: scale(0.9); }
@@ -110,18 +133,24 @@
         .total-amount {
             font-size: 2.5em;
             font-weight: 900;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--mono);
             text-align: center;
-            margin: 15px 0;
+            margin: 8px 0 2px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* 動態分類統計格 */
+        .sync-status {
+            text-align: center;
+            font-size: 0.75em;
+            opacity: 0.8;
+            min-height: 1.2em;
+        }
+
         .stats-grid {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-top: 15px;
+            margin-top: 12px;
             justify-content: center;
         }
 
@@ -132,30 +161,28 @@
             border-radius: 12px;
             min-width: 70px;
             flex: 0 0 auto;
+            cursor: pointer;
         }
 
         .stat-label { font-size: 0.8em; opacity: 0.9; margin-bottom: 4px; }
-        .stat-value { font-size: 1em; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .stat-value { font-size: 1em; font-weight: 700; font-family: var(--mono); }
 
         /* === 主要內容區 === */
-        .app-content {
-            padding: 20px;
-            padding-bottom: 30px;
-        }
+        .app-content { padding: 20px 20px 30px; }
 
-        /* === 搜尋和篩選 === */
         .search-section { margin-bottom: 20px; }
 
         .search-bar { position: relative; margin-bottom: 15px; }
 
         .search-input {
             width: 100%;
-            padding: 12px 45px 12px 45px;
+            padding: 12px 45px;
             border: 2px solid var(--border);
             border-radius: 24px;
-            font-size: 1em;
-            transition: all 0.3s;
+            font-size: 16px; /* 16px 以上 iPhone 才不會自動放大 */
+            transition: border-color 0.3s, box-shadow 0.3s;
             background: white;
+            font-family: inherit;
         }
 
         .search-input:focus {
@@ -188,13 +215,13 @@
 
         .clear-search.visible { display: block; }
 
-        /* === 分類篩選器 === */
         .category-filters {
             display: flex;
             gap: 8px;
             overflow-x: auto;
             padding: 5px 0;
             -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
         }
 
         .category-filters::-webkit-scrollbar { display: none; }
@@ -205,7 +232,7 @@
             border: 2px solid var(--border);
             background: white;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
             white-space: nowrap;
             font-size: 0.9em;
             font-weight: 500;
@@ -244,7 +271,7 @@
         }
 
         .date-label { font-weight: 600; color: var(--text-primary); }
-        .date-total { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--primary); }
+        .date-total { font-family: var(--mono); font-weight: 700; color: var(--primary); }
 
         .record-item {
             background: rgba(255,255,255,0.9);
@@ -255,18 +282,14 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: all 0.2s;
             position: relative;
             overflow: hidden;
-            backdrop-filter: blur(10px);
         }
 
         .record-item::before {
             content: '';
             position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
+            left: 0; top: 0; bottom: 0;
             width: 4px;
             background: var(--primary);
         }
@@ -281,7 +304,7 @@
         .record-item.beauty::before { background: #E91E63; }
         .record-item.family::before { background: #009688; }
 
-        .record-left { flex: 1; padding-left: 10px; }
+        .record-left { flex: 1; padding-left: 10px; min-width: 0; }
 
         .record-header { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
 
@@ -293,6 +316,7 @@
             font-weight: 600;
             background: var(--bg-main);
             color: var(--text-secondary);
+            flex: 0 0 auto;
         }
 
         .record-item.food .category-badge { background: #e8f5e9; color: #2e7d32; }
@@ -305,23 +329,29 @@
         .record-item.beauty .category-badge { background: #fce4ec; color: #880e4f; }
         .record-item.family .category-badge { background: #e0f2f1; color: #004d40; }
 
-        .record-item-name { font-weight: 600; color: var(--text-primary); font-size: 1.05em; }
+        .record-item-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1.05em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
         .record-time { font-size: 0.85em; color: var(--text-secondary); margin-top: 2px; }
 
         .record-amount {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--mono);
             font-size: 1.3em;
             font-weight: 700;
             color: var(--text-primary);
+            padding-left: 10px;
             padding-right: 5px;
         }
 
-        /* === 空狀態 === */
         .empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
         .empty-icon { font-size: 4em; margin-bottom: 15px; opacity: 0.3; }
         .empty-text { font-size: 1.1em; font-weight: 500; }
 
-        /* === 載入動畫 === */
         .loading { text-align: center; padding: 40px; color: var(--text-secondary); }
 
         .spinner {
@@ -340,7 +370,7 @@
         .modal {
             display: none;
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            inset: 0;
             background: rgba(0,0,0,0.5);
             z-index: 999;
             align-items: center;
@@ -370,10 +400,37 @@
             font-size: 1.5em;
             cursor: pointer;
             color: var(--text-secondary);
-            padding: 0;
             width: 30px;
             height: 30px;
         }
+
+        .field-label { font-weight: 700; margin: 16px 0 8px; display: block; }
+
+        .field-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1em;
+            cursor: pointer;
+            margin-top: 15px;
+            font-family: inherit;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-plain { background: var(--bg-main); color: var(--text-secondary); }
+
+        .hint { margin-top: 8px; font-size: 0.85em; color: var(--text-secondary); line-height: 1.5; }
 
         @media (min-width: 481px) {
             .app-container {
@@ -384,6 +441,10 @@
                 overflow: hidden;
             }
         }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
     </style>
 </head>
 <body>
@@ -391,25 +452,23 @@
         <header class="app-header">
             <div class="header-top">
                 <div class="app-title">💰 我的記帳本</div>
-                <button class="settings-btn" onclick="openSettings()">⚙️</button>
+                <div class="header-actions">
+                    <button class="icon-btn" id="refreshBtn" onclick="loadRecords(true)" aria-label="重新整理"><span>🔄</span></button>
+                    <button class="icon-btn" onclick="openSettings()" aria-label="設定">⚙️</button>
+                </div>
             </div>
 
             <div class="stats-card">
                 <div class="month-selector">
-                    <button onclick="changeMonth(-1)">←</button>
-                    <div class="current-month" id="currentMonth">載入中...</div>
-                    <button onclick="changeMonth(1)">→</button>
+                    <button onclick="changeMonth(-1)" aria-label="上個月">←</button>
+                    <div class="current-month" id="currentMonth"></div>
+                    <button onclick="changeMonth(1)" aria-label="下個月">→</button>
                 </div>
 
                 <div class="total-amount" id="monthTotal">NT$0</div>
+                <div class="sync-status" id="syncStatus"></div>
 
-                <!-- 動態分類統計，由 JS 填入 -->
-                <div class="stats-grid" id="statsGrid">
-                    <div class="stat-item" style="opacity:0.6">
-                        <div class="stat-label">載入中</div>
-                        <div class="stat-value">...</div>
-                    </div>
-                </div>
+                <div class="stats-grid" id="statsGrid"></div>
             </div>
         </header>
 
@@ -418,7 +477,7 @@
                 <div class="search-bar">
                     <span class="search-icon">🔍</span>
                     <input type="text" class="search-input" id="searchInput" placeholder="搜尋項目名稱..." oninput="handleSearch()">
-                    <button class="clear-search" id="clearSearch" onclick="clearSearch()">✕</button>
+                    <button class="clear-search" id="clearSearch" onclick="clearSearch()" aria-label="清除搜尋">✕</button>
                 </div>
 
                 <div class="category-filters" id="categoryFilters">
@@ -435,37 +494,29 @@
                 </div>
             </div>
 
-            <div class="records-section" id="recordsList">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <div>載入中...</div>
-                </div>
-            </div>
+            <div class="records-section" id="recordsList"></div>
         </main>
 
-        <!-- 設定模態視窗 -->
-        <div class="modal" id="settingsModal">
+        <!-- 設定 -->
+        <div class="modal" id="settingsModal" onclick="if(event.target===this)closeSettings()">
             <div class="modal-content">
-                <button class="modal-close" onclick="closeSettings()">✕</button>
+                <button class="modal-close" onclick="closeSettings()" aria-label="關閉">✕</button>
                 <div class="modal-header">⚙️ 設定</div>
 
-                <div style="margin-top: 20px;">
-                    <h3 style="margin-bottom: 10px;">Google Apps Script 網址</h3>
-                    <input type="text" id="apiUrlInput" placeholder="貼上你的 Apps Script 網址"
-                           style="width:100%;padding:12px;border:2px solid var(--border);border-radius:8px;margin-bottom:15px;">
-                    <button onclick="saveApiUrl()"
-                            style="width:100%;padding:12px;background:var(--primary);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
-                        儲存設定
-                    </button>
-                    <p style="margin-top:10px;font-size:0.85em;color:var(--text-secondary);">
-                        ℹ️ 網址格式: https://script.google.com/macros/s/xxxxx/exec
-                    </p>
-                </div>
+                <label class="field-label" for="apiUrlInput">Google Apps Script 網址</label>
+                <input type="url" id="apiUrlInput" class="field-input" placeholder="https://script.google.com/macros/s/xxxxx/exec">
+
+                <label class="field-label" for="apiKeyInput">讀取密碼</label>
+                <input type="password" id="apiKeyInput" class="field-input" placeholder="和 Apps Script 裡的 API_KEY 一樣">
+                <p class="hint">Apps Script 的 API_KEY 如果留空，這裡也留空。</p>
+
+                <button class="btn btn-primary" onclick="saveSettings()">儲存設定</button>
+                <button class="btn btn-plain" onclick="clearLocalCache()">清除本機暫存資料</button>
 
                 <div style="margin-top: 30px;">
                     <h3 style="margin-bottom: 10px;">關於</h3>
                     <p style="color:var(--text-secondary);line-height:1.6;">
-                        記帳 App v3.1<br>
+                        記帳 App v4.0<br>
                         資料來源: Google Sheets<br>
                         © 2026 Made with ❤️
                     </p>
@@ -475,7 +526,6 @@
     </div>
 
     <script>
-        // === 分類設定（emoji + CSS class） ===
         const CATEGORY_CONFIG = {
             '伙食':  { emoji: '🍽️', cls: 'food' },
             '行車':  { emoji: '🚗', cls: 'transport' },
@@ -488,56 +538,168 @@
             '家人':  { emoji: '👨‍👩‍👧', cls: 'family' },
         };
 
+        const CACHE_PREFIX = 'rec_';
+
         let allRecords = [];
         let currentYear = new Date().getFullYear();
         let currentMonth = new Date().getMonth() + 1;
         let currentFilter = 'all';
         let searchQuery = '';
-        let API_URL = localStorage.getItem('apiUrl') || '';
+        let API_URL = '';
+        let API_KEY = '';
+        let loadToken = 0;
+        let lastSyncAt = 0;
+        const prefetched = new Set();
 
-        window.onload = function() {
+        // ---------- localStorage 小工具（失敗也不會壞掉） ----------
+        var store;
+        function makeStore() {
+            return {
+                get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+                set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
+                remove(k) { try { localStorage.removeItem(k); } catch (e) {} },
+                keys() { try { return Object.keys(localStorage); } catch (e) { return []; } }
+            };
+        }
+
+        const pad = n => String(n).padStart(2, '0');
+        const cacheKey = (y, m) => `${CACHE_PREFIX}${y}_${pad(m)}`;
+
+        function readCache(y, m) {
+            const v = store.get(cacheKey(y, m));
+            if (!v) return null;
+            try { return JSON.parse(v); } catch (e) { return null; }
+        }
+
+        function writeCache(y, m, records) {
+            const ok = store.set(cacheKey(y, m), JSON.stringify({ t: Date.now(), records }));
+            if (!ok) {
+                // 空間不足時，刪掉最舊的月份再試一次
+                const old = store.keys().filter(k => k.startsWith(CACHE_PREFIX)).sort();
+                old.slice(0, Math.max(1, old.length - 6)).forEach(k => store.remove(k));
+                store.set(cacheKey(y, m), JSON.stringify({ t: Date.now(), records }));
+            }
+        }
+
+        function esc(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        function buildUrl(params) {
+            const u = new URL(API_URL);
+            Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
+            if (API_KEY) u.searchParams.set('key', API_KEY);
+            return u.toString();
+        }
+
+        async function fetchMonth(y, m, force) {
+            const params = { action: 'getAllRecords', year: y, month: m };
+            if (force) params.force = 1;
+            const res = await fetch(buildUrl(params), { cache: 'no-store' });
+            const data = await res.json();
+            if (data.status !== 'success') throw new Error(data.msg || '未知錯誤');
+            return data.records || [];
+        }
+
+        // ---------- 啟動 ----------
+        function init() {
+            store = makeStore();
+            API_URL = store.get('apiUrl') || '';
+            API_KEY = store.get('apiKey') || '';
+            updateMonthDisplay();
+
             if (!API_URL) {
-                setTimeout(() => { alert('請先在設定中填入你的 Google Apps Script 網址'); openSettings(); }, 500);
+                showError('還沒設定 Apps Script 網址，請到設定填入。', true);
+                setTimeout(openSettings, 300);
                 return;
             }
-            updateMonthDisplay();
             loadRecords();
-        };
+        }
 
-        async function loadRecords() {
-            document.getElementById('recordsList').innerHTML = '<div class="loading"><div class="spinner"></div><div>載入中...</div></div>';
+        // 核心：先秒開顯示上次的資料，背景再抓最新的
+        async function loadRecords(force = false) {
+            if (!API_URL) { openSettings(); return; }
+            const y = currentYear, m = currentMonth;
+            const token = ++loadToken;
+            const cached = readCache(y, m);
+
+            if (cached) {
+                allRecords = cached.records;
+                renderAll();
+            } else {
+                allRecords = [];
+                document.getElementById('recordsList').innerHTML =
+                    '<div class="loading"><div class="spinner"></div><div>第一次載入這個月，稍等一下...</div></div>';
+                document.getElementById('monthTotal').textContent = 'NT$—';
+                document.getElementById('statsGrid').innerHTML = '';
+            }
+            setSync('updating', cached && cached.t);
 
             try {
-                const url = `${API_URL}?action=getAllRecords&year=${currentYear}&month=${currentMonth}`;
-                const response = await fetch(url);
-                const data = await response.json();
-
-                if (data.status === 'success') {
-                    allRecords = data.records || [];
-                    renderRecords();
-                    updateStats();
-                } else {
-                    showError(data.msg || '未知錯誤');
-                }
+                const recs = await fetchMonth(y, m, force);
+                if (token !== loadToken) return; // 使用者已經切到別的月份
+                writeCache(y, m, recs);
+                const changed = !cached || JSON.stringify(cached.records) !== JSON.stringify(recs);
+                allRecords = recs;
+                if (changed) renderAll();
+                lastSyncAt = Date.now();
+                setSync('ok', lastSyncAt);
+                prefetchNeighbor(y, m);
             } catch (error) {
-                showError(error.message, true);
+                if (token !== loadToken) return;
+                if (cached) setSync('offline', cached.t, error.message);
+                else { setSync(''); showError(error.message, true); }
             }
+        }
+
+        // 背景先抓上個月，切換時就能秒開
+        function prefetchNeighbor(y, m) {
+            let py = y, pm = m - 1;
+            if (pm < 1) { pm = 12; py--; }
+            const k = cacheKey(py, pm);
+            if (prefetched.has(k) || readCache(py, pm)) return;
+            prefetched.add(k);
+            setTimeout(() => {
+                fetchMonth(py, pm, false).then(r => writeCache(py, pm, r)).catch(() => {});
+            }, 800);
+        }
+
+        function setSync(state, t, msg) {
+            const el = document.getElementById('syncStatus');
+            const btn = document.getElementById('refreshBtn');
+            btn.classList.toggle('spinning', state === 'updating');
+            const hm = t ? new Date(t).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+            if (state === 'updating') el.textContent = t ? `更新中…（顯示 ${hm} 的資料）` : '更新中…';
+            else if (state === 'ok') el.textContent = `已更新 ${hm}`;
+            else if (state === 'offline') el.textContent = `⚠️ 無法連線，顯示 ${hm} 的資料`;
+            else el.textContent = '';
+            if (msg) el.title = msg;
+        }
+
+        // 從捷徑記完帳切回來時，自動更新
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && API_URL && Date.now() - lastSyncAt > 15000) {
+                loadRecords();
+            }
+        });
+
+        function renderAll() {
+            renderRecords();
+            updateStats();
         }
 
         function showError(msg, showSettingsBtn = false) {
             document.getElementById('recordsList').innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon">⚠️</div>
-                    <div class="empty-text">載入失敗<br><small>${msg}</small></div>
-                    ${showSettingsBtn ? '<button onclick="openSettings()" style="margin-top:15px;padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:8px;cursor:pointer;">檢查設定</button>' : ''}
+                    <div class="empty-text">載入失敗<br><small>${esc(msg)}</small></div>
+                    ${showSettingsBtn ? '<button class="btn btn-primary" style="width:auto;padding:10px 20px;" onclick="openSettings()">檢查設定</button>' : ''}
                 </div>`;
         }
 
-        // === 更新頂部動態統計格 ===
         function updateStats() {
             const catTotals = {};
             let monthTotal = 0;
-
             allRecords.forEach(r => {
                 monthTotal += r.amount;
                 catTotals[r.category] = (catTotals[r.category] || 0) + r.amount;
@@ -545,40 +707,34 @@
 
             document.getElementById('monthTotal').textContent = `NT$${monthTotal.toLocaleString()}`;
 
-            // 只顯示有消費的分類，依金額由大到小排序
-            const activeCats = Object.entries(catTotals)
-                .filter(([, v]) => v > 0)
-                .sort((a, b) => b[1] - a[1]);
-
+            const activeCats = Object.entries(catTotals).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
             const grid = document.getElementById('statsGrid');
 
             if (activeCats.length === 0) {
-                grid.innerHTML = '<div class="stat-item" style="opacity:0.6"><div class="stat-label">本月</div><div class="stat-value">無記錄</div></div>';
+                grid.innerHTML = '<div class="stat-item" style="opacity:0.6;cursor:default"><div class="stat-label">本月</div><div class="stat-value">無記錄</div></div>';
                 return;
             }
 
             grid.innerHTML = activeCats.map(([cat, amt]) => {
                 const cfg = CATEGORY_CONFIG[cat] || { emoji: '📋' };
                 return `
-                    <div class="stat-item" onclick="filterCategory('${cat}')" style="cursor:pointer;">
-                        <div class="stat-label">${cfg.emoji} ${cat}</div>
+                    <div class="stat-item" onclick="filterCategory('${esc(cat)}')">
+                        <div class="stat-label">${cfg.emoji} ${esc(cat)}</div>
                         <div class="stat-value">$${amt.toLocaleString()}</div>
                     </div>`;
             }).join('');
         }
 
-        // === 渲染記錄 ===
         function renderRecords() {
             const container = document.getElementById('recordsList');
+            const q = searchQuery.toLowerCase();
 
-            let filtered = allRecords.filter(r => {
-                const matchCat = currentFilter === 'all' || r.category === currentFilter;
-                const matchSearch = !searchQuery || r.item.toLowerCase().includes(searchQuery.toLowerCase());
-                return matchCat && matchSearch;
-            });
+            const filtered = allRecords.filter(r =>
+                (currentFilter === 'all' || r.category === currentFilter) &&
+                (!q || String(r.item).toLowerCase().includes(q)));
 
             if (filtered.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">沒有找到記錄</div></div>';
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">這個月沒有符合的記錄</div></div>';
                 return;
             }
 
@@ -587,7 +743,7 @@
 
             let html = '';
             Object.keys(grouped).sort().reverse().forEach(date => {
-                const recs = grouped[date];
+                const recs = grouped[date].slice().sort((a, b) => String(b.time).localeCompare(String(a.time)));
                 const dateTotal = recs.reduce((s, r) => s + r.amount, 0);
 
                 html += `<div class="date-group">
@@ -602,15 +758,14 @@
                         <div class="record-item ${cfg.cls}">
                             <div class="record-left">
                                 <div class="record-header">
-                                    <span class="category-badge">${r.category}</span>
-                                    <span class="record-item-name">${r.item}</span>
+                                    <span class="category-badge">${esc(r.category)}</span>
+                                    <span class="record-item-name">${esc(r.item)}</span>
                                 </div>
-                                <div class="record-time">${r.time}</div>
+                                <div class="record-time">${esc(r.time)}</div>
                             </div>
                             <div class="record-amount">$${r.amount.toLocaleString()}</div>
                         </div>`;
                 });
-
                 html += '</div>';
             });
 
@@ -618,8 +773,7 @@
         }
 
         function handleSearch() {
-            const input = document.getElementById('searchInput');
-            searchQuery = input.value;
+            searchQuery = document.getElementById('searchInput').value;
             document.getElementById('clearSearch').classList.toggle('visible', !!searchQuery);
             renderRecords();
         }
@@ -633,9 +787,7 @@
 
         function filterCategory(category) {
             currentFilter = category;
-            document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
-            const chip = document.querySelector(`[data-category="${category}"]`);
-            if (chip) chip.classList.add('active');
+            document.querySelectorAll('.category-chip').forEach(c => c.classList.toggle('active', c.dataset.category === category));
             renderRecords();
         }
 
@@ -654,24 +806,34 @@
         function openSettings() {
             document.getElementById('settingsModal').classList.add('active');
             document.getElementById('apiUrlInput').value = API_URL;
+            document.getElementById('apiKeyInput').value = API_KEY;
         }
 
         function closeSettings() {
             document.getElementById('settingsModal').classList.remove('active');
         }
 
-        function saveApiUrl() {
+        function saveSettings() {
             const url = document.getElementById('apiUrlInput').value.trim();
+            const key = document.getElementById('apiKeyInput').value.trim();
             if (!url) { alert('請輸入 Apps Script 網址'); return; }
             if (!url.includes('script.google.com')) {
                 alert('網址格式不正確！\n\n正確格式應該是：\nhttps://script.google.com/macros/s/xxxxx/exec');
                 return;
             }
-            localStorage.setItem('apiUrl', url);
+            store.set('apiUrl', url);
+            store.set('apiKey', key);
             API_URL = url;
-            alert('設定已儲存！');
+            API_KEY = key;
             closeSettings();
-            location.reload();
+            loadRecords(true);
+        }
+
+        function clearLocalCache() {
+            store.keys().filter(k => k.startsWith(CACHE_PREFIX)).forEach(k => store.remove(k));
+            prefetched.clear();
+            closeSettings();
+            loadRecords(true);
         }
 
         function formatDate(dateStr) {
@@ -679,18 +841,24 @@
             const today = new Date();
             const yesterday = new Date(today);
             yesterday.setDate(yesterday.getDate() - 1);
+            const fmt = d => `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
 
-            const pad = n => String(n).padStart(2,'0');
-            const fmt = d => `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}`;
-            const todayStr = fmt(today);
-            const yestStr = fmt(yesterday);
+            if (dateStr === fmt(today)) return '今天';
+            if (dateStr === fmt(yesterday)) return '昨天';
+            if (isNaN(date)) return esc(dateStr);
 
-            if (dateStr === todayStr) return '今天';
-            if (dateStr === yestStr) return '昨天';
-
-            const weekdays = ['日','一','二','三','四','五','六'];
-            return `${date.getMonth()+1}/${date.getDate()} (${weekdays[date.getDay()]})`;
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            return `${date.getMonth() + 1}/${date.getDate()} (${weekdays[date.getDay()]})`;
         }
+
+        // 註冊 service worker：把介面存在手機裡，下次打開不用再下載
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
+            });
+        }
+
+        init();
     </script>
 </body>
 </html>
