@@ -168,7 +168,7 @@
         .stat-value { font-size: 1em; font-weight: 700; font-family: var(--mono); }
 
         /* === 主要內容區 === */
-        .app-content { padding: 20px 20px 30px; }
+        .app-content { padding: 20px 20px 110px; }
 
         .search-section { margin-bottom: 20px; }
 
@@ -432,6 +432,108 @@
 
         .hint { margin-top: 8px; font-size: 0.85em; color: var(--text-secondary); line-height: 1.5; }
 
+        /* === 可點擊編輯的記錄 === */
+        .record-item { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+        .record-item:active { transform: scale(0.98); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+        .record-item.saving { opacity: 0.5; pointer-events: none; }
+
+        .record-item.failed::before { background: #ea4335; }
+        .record-item.failed { background: #fff5f4; }
+        .record-item.failed .category-badge { background: #fce8e6; color: #c5221f; }
+        .record-item.failed .record-time::after { content: '　點一下修改'; color: #c5221f; font-weight: 600; }
+
+        /* === 新增按鈕 === */
+        .fab {
+            position: fixed;
+            right: max(20px, calc(50% - 240px + 20px));
+            bottom: calc(24px + env(safe-area-inset-bottom));
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 2em;
+            line-height: 1;
+            box-shadow: var(--shadow-lg);
+            cursor: pointer;
+            z-index: 200;
+        }
+        .fab:active { transform: scale(0.92); }
+
+        /* === 編輯表單（從底部滑出） === */
+        .sheet-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 900;
+            display: none;
+        }
+        .sheet-backdrop.active { display: block; }
+
+        .edit-sheet {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            max-width: 480px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            padding: 12px 20px calc(20px + env(safe-area-inset-bottom));
+            z-index: 901;
+            transform: translateY(105%);
+            transition: transform 0.25s ease-out;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .edit-sheet.active { transform: translateY(0); }
+
+        .sheet-handle { width: 40px; height: 5px; border-radius: 3px; background: var(--border); margin: 0 auto 14px; }
+
+        .sheet-title { font-size: 1.2em; font-weight: 700; margin-bottom: 4px; }
+        .sheet-sub { font-size: 0.85em; color: var(--text-secondary); margin-bottom: 8px; word-break: break-all; }
+
+        .form-row { display: flex; gap: 10px; }
+        .form-row > div { flex: 1; min-width: 0; }
+
+        .amount-input { font-family: var(--mono); font-size: 1.4em !important; font-weight: 700; }
+
+        .cat-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+        .cat-option {
+            padding: 7px 12px;
+            border-radius: 18px;
+            border: 2px solid var(--border);
+            background: white;
+            font-size: 0.9em;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .cat-option.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+        .sheet-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .sheet-actions .btn { margin-top: 0; }
+        .btn-danger { background: #fce8e6; color: #c5221f; flex: 0 0 auto; width: auto; padding: 12px 18px; }
+        .btn:disabled { opacity: 0.6; }
+
+        /* === 提示訊息 === */
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: calc(100px + env(safe-area-inset-bottom));
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(32,33,36,0.92);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-size: 0.95em;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            z-index: 1000;
+            max-width: 85vw;
+            text-align: center;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
         @media (min-width: 481px) {
             .app-container {
                 margin-top: 20px;
@@ -516,7 +618,7 @@
                 <div style="margin-top: 30px;">
                     <h3 style="margin-bottom: 10px;">關於</h3>
                     <p style="color:var(--text-secondary);line-height:1.6;">
-                        記帳 App v4.0<br>
+                        記帳 App v4.1<br>
                         資料來源: Google Sheets<br>
                         © 2026 Made with ❤️
                     </p>
@@ -524,6 +626,45 @@
             </div>
         </div>
     </div>
+
+    <!-- 新增按鈕 -->
+    <button class="fab" onclick="openEditor(null)" aria-label="新增一筆">＋</button>
+
+    <!-- 編輯表單 -->
+    <div class="sheet-backdrop" id="sheetBackdrop" onclick="closeEditor()"></div>
+    <div class="edit-sheet" id="editSheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title" id="sheetTitle">修改記錄</div>
+        <div class="sheet-sub" id="sheetSub"></div>
+
+        <label class="field-label" for="edItem">項目</label>
+        <input type="text" id="edItem" class="field-input" placeholder="例如：午餐" autocomplete="off">
+
+        <label class="field-label" for="edAmount">金額</label>
+        <input type="number" id="edAmount" class="field-input amount-input" inputmode="decimal" placeholder="0">
+
+        <div class="form-row">
+            <div>
+                <label class="field-label" for="edDate">日期</label>
+                <input type="date" id="edDate" class="field-input">
+            </div>
+            <div>
+                <label class="field-label" for="edTime">時間</label>
+                <input type="time" id="edTime" class="field-input">
+            </div>
+        </div>
+
+        <span class="field-label">分類</span>
+        <div class="cat-picker" id="edCats"></div>
+
+        <div class="sheet-actions">
+            <button class="btn btn-danger" id="edDelete" onclick="deleteRecord()">刪除</button>
+            <button class="btn btn-plain" onclick="closeEditor()">取消</button>
+            <button class="btn btn-primary" id="edSave" onclick="saveRecord()">儲存</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
 
     <script>
         const CATEGORY_CONFIG = {
@@ -536,7 +677,9 @@
             '娛樂':  { emoji: '🎮', cls: 'entertainment' },
             '美容':  { emoji: '💄', cls: 'beauty' },
             '家人':  { emoji: '👨‍👩‍👧', cls: 'family' },
+            '解析失敗': { emoji: '❓', cls: 'failed' },
         };
+        const EDIT_CATEGORIES = ['伙食', '行車', '家用', '教育', '醫療', '雜支', '娛樂', '美容', '家人'];
 
         const CACHE_PREFIX = 'rec_';
 
@@ -755,7 +898,7 @@
                 recs.forEach(r => {
                     const cfg = CATEGORY_CONFIG[r.category] || { cls: 'misc' };
                     html += `
-                        <div class="record-item ${cfg.cls}">
+                        <div class="record-item ${cfg.cls}" onclick="openEditor(${Number(r.row) || 0})">
                             <div class="record-left">
                                 <div class="record-header">
                                     <span class="category-badge">${esc(r.category)}</span>
@@ -849,6 +992,152 @@
 
             const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
             return `${date.getMonth() + 1}/${date.getDate()} (${weekdays[date.getDay()]})`;
+        }
+
+        // ==========================================
+        // ✏️ 新增 / 修改 / 刪除
+        // ==========================================
+        let editing = null;      // 正在修改的那筆（新增時為 null）
+        let edCategory = 'auto';
+
+        function openEditor(row) {
+            if (!API_URL) { openSettings(); return; }
+            // row === null 代表新增；舊暫存資料沒有列號時先重新整理
+            if (row !== null && !row) { toast('資料更新中，請稍後再點一次'); loadRecords(true); return; }
+            editing = row ? allRecords.find(r => r.row === row) || null : null;
+            if (row && !editing) { toast('找不到這筆，請按 🔄 重新整理'); return; }
+
+            const now = new Date();
+            const todayISO = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+            const nowHM = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+            document.getElementById('sheetTitle').textContent = editing ? '修改記錄' : '新增一筆';
+            document.getElementById('sheetSub').textContent =
+                editing && editing.category === '解析失敗' ? `語音原文：${editing.item}` : '';
+            document.getElementById('edItem').value = editing ? editing.item : '';
+            document.getElementById('edAmount').value = editing ? (editing.amount || '') : '';
+            document.getElementById('edDate').value = editing ? editing.date.replace(/\//g, '-') : todayISO;
+            document.getElementById('edTime').value = editing ? (editing.time || '') : nowHM;
+            document.getElementById('edDelete').style.display = editing ? '' : 'none';
+
+            edCategory = editing && EDIT_CATEGORIES.includes(editing.category) ? editing.category : 'auto';
+            renderCatPicker();
+
+            document.getElementById('sheetBackdrop').classList.add('active');
+            document.getElementById('editSheet').classList.add('active');
+            if (!editing || editing.category === '解析失敗') {
+                setTimeout(() => document.getElementById('edItem').focus(), 250);
+            }
+        }
+
+        function renderCatPicker() {
+            const opts = [['auto', '🪄 自動判斷']].concat(EDIT_CATEGORIES.map(c => [c, `${CATEGORY_CONFIG[c].emoji} ${c}`]));
+            document.getElementById('edCats').innerHTML = opts.map(([v, label]) =>
+                `<button type="button" class="cat-option ${v === edCategory ? 'active' : ''}" onclick="pickCat('${v}')">${label}</button>`
+            ).join('');
+        }
+
+        function pickCat(v) { edCategory = v; renderCatPicker(); }
+
+        function closeEditor() {
+            document.getElementById('sheetBackdrop').classList.remove('active');
+            document.getElementById('editSheet').classList.remove('active');
+            document.activeElement && document.activeElement.blur();
+        }
+
+        let toastTimer;
+        function toast(msg) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+        }
+
+        async function postAction(payload) {
+            // 用 text/plain 送出，避免瀏覽器跨網域預檢，Apps Script 才收得到
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(Object.assign({ key: API_KEY }, payload))
+            });
+            const data = await res.json();
+            if (data.status !== 'success') throw new Error(data.msg || '未知錯誤');
+            return data;
+        }
+
+        // 用伺服器回傳的最新資料更新畫面與本機暫存
+        function applyMonths(months, isDelete) {
+            if (isDelete) {
+                // 刪除會讓其他月份的列號位移，清掉其他月份的本機暫存
+                store.keys().filter(k => k.startsWith(CACHE_PREFIX)).forEach(k => store.remove(k));
+                prefetched.clear();
+            }
+            Object.entries(months || {}).forEach(([k, recs]) => {
+                const [y, m] = k.split('_').map(Number);
+                writeCache(y, m, recs);
+                if (y === currentYear && m === currentMonth) allRecords = recs;
+            });
+            renderAll();
+            lastSyncAt = Date.now();
+            setSync('ok', lastSyncAt);
+        }
+
+        function setSaving(on) {
+            ['edSave', 'edDelete'].forEach(id => document.getElementById(id).disabled = on);
+            document.getElementById('edSave').textContent = on ? '儲存中…' : '儲存';
+        }
+
+        async function saveRecord() {
+            const item = document.getElementById('edItem').value.trim();
+            const amountStr = document.getElementById('edAmount').value.trim();
+            const date = document.getElementById('edDate').value;
+            const time = document.getElementById('edTime').value;
+
+            if (!item) { toast('請輸入項目'); return; }
+            if (amountStr === '' || isNaN(Number(amountStr))) { toast('請輸入金額'); return; }
+            if (!date) { toast('請選日期'); return; }
+
+            const payload = {
+                action: editing ? 'update' : 'add',
+                item, amount: Number(amountStr), date, time, category: edCategory
+            };
+            if (editing) {
+                payload.row = editing.row;
+                payload.original = { date: editing.date, item: editing.item, amount: editing.amount };
+            }
+
+            setSaving(true);
+            try {
+                const data = await postAction(payload);
+                closeEditor();
+                applyMonths(data.months, false);
+                toast(editing ? '✅ 已儲存' : '✅ 已新增');
+            } catch (e) {
+                toast('⚠️ ' + e.message);
+            } finally {
+                setSaving(false);
+            }
+        }
+
+        async function deleteRecord() {
+            if (!editing) return;
+            if (!confirm(`確定刪除「${editing.item} $${editing.amount}」？`)) return;
+            setSaving(true);
+            try {
+                const data = await postAction({
+                    action: 'delete',
+                    row: editing.row,
+                    original: { date: editing.date, item: editing.item, amount: editing.amount }
+                });
+                closeEditor();
+                applyMonths(data.months, true);
+                toast('🗑️ 已刪除');
+            } catch (e) {
+                toast('⚠️ ' + e.message);
+            } finally {
+                setSaving(false);
+            }
         }
 
         // 註冊 service worker：把介面存在手機裡，下次打開不用再下載

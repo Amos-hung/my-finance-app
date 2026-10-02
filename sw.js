@@ -1,6 +1,6 @@
 // 記帳本 service worker
 // ⚠️ 以後修改 index.html 時，把版本號 +1（例如 v2 → v3），手機才會換成新版
-const CACHE = 'ledger-v1';
+const CACHE = 'ledger-v2';
 const SHELL = ['./', './index.html', './manifest.json', './apple-touch-icon.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', event => {
