@@ -442,6 +442,11 @@
         .record-item.failed .category-badge { background: #fce8e6; color: #c5221f; }
         .record-item.failed .record-time::after { content: '　點一下修改'; color: #c5221f; font-weight: 600; }
 
+        .record-item.pending::before { background: #f9ab00; }
+        .record-item.pending { background: #fffaeb; }
+        .record-item.pending .category-badge { background: #fef0c7; color: #b06000; }
+        .record-item.pending .record-time::after { content: '　Apple Pay・點一下確認'; color: #b06000; font-weight: 600; }
+
         /* === 新增按鈕 === */
         .fab {
             position: fixed;
@@ -618,7 +623,7 @@
                 <div style="margin-top: 30px;">
                     <h3 style="margin-bottom: 10px;">關於</h3>
                     <p style="color:var(--text-secondary);line-height:1.6;">
-                        記帳 App v4.1<br>
+                        記帳 App v4.2<br>
                         資料來源: Google Sheets<br>
                         © 2026 Made with ❤️
                     </p>
@@ -678,6 +683,7 @@
             '美容':  { emoji: '💄', cls: 'beauty' },
             '家人':  { emoji: '👨‍👩‍👧', cls: 'family' },
             '解析失敗': { emoji: '❓', cls: 'failed' },
+            '待確認': { emoji: '💳', cls: 'pending' },
         };
         const EDIT_CATEGORIES = ['伙食', '行車', '家用', '教育', '醫療', '雜支', '娛樂', '美容', '家人'];
 
@@ -1013,7 +1019,9 @@
 
             document.getElementById('sheetTitle').textContent = editing ? '修改記錄' : '新增一筆';
             document.getElementById('sheetSub').textContent =
-                editing && editing.category === '解析失敗' ? `語音原文：${editing.item}` : '';
+                !editing ? '' :
+                editing.category === '解析失敗' ? `語音原文：${editing.item}` :
+                editing.category === '待確認' ? `Apple Pay 自動記錄：${editing.item}，請確認項目和分類` : '';
             document.getElementById('edItem').value = editing ? editing.item : '';
             document.getElementById('edAmount').value = editing ? (editing.amount || '') : '';
             document.getElementById('edDate').value = editing ? editing.date.replace(/\//g, '-') : todayISO;
